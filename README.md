@@ -115,6 +115,7 @@ python3 redteam_harness.py \
   --cases cases_full.json \
   --model claude-sonnet-4-5 \
   --out "results-{timestamp}.jsonl" \
+  --summary-out "summary-{timestamp}.json" \
   --enforce-thresholds \
   --allow-case-failures \
   --threshold-overall-pass-rate 95 \
@@ -126,6 +127,7 @@ Notes:
 - `--allow-case-failures` means the process exits based on threshold gates instead of strict all-pass.
 - `{timestamp}` in `--out` is replaced with UTC format `YYYYMMDDTHHMMSSZ`.
 - Without `{timestamp}`, use `--timestamp-out` to append one automatically.
+- `--summary-out` writes machine-readable run metadata, threshold evaluation, and failed case ids.
 
 ## 9) CI Automation
 
@@ -134,6 +136,7 @@ This repo includes GitHub Actions workflow:
 - File: `.github/workflows/redteam.yml`
 - Triggers: `pull_request`, push to `main`, daily schedule, and manual `workflow_dispatch`
 - Artifacts: timestamped JSONL outputs under `artifacts/`
+- PR behavior: on pull requests, CI posts/updates a report comment with gate status and failed cases
 
 Required GitHub secret:
 

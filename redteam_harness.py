@@ -233,6 +233,19 @@ def resolve_out_path(base_out: str, timestamp_out: bool, run_timestamp: str) -> 
     return f"{root}-{run_timestamp}{ext}"
 
 
+def ensure_parent_dir(path: str) -> None:
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
+def write_summary_file(path: str, payload: dict[str, Any]) -> None:
+    ensure_parent_dir(path)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=True, indent=2, sort_keys=True)
+        f.write("\n")
+
+
 def run(args: argparse.Namespace) -> int:
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -260,6 +273,9 @@ def run(args: argparse.Namespace) -> int:
     run_started = run_started_dt.isoformat()
     run_timestamp = run_started_dt.strftime("%Y%m%dT%H%M%SZ")
     out_path = resolve_out_path(args.out, args.timestamp_out, run_timestamp)
+    summary_out_path = ""
+    if args.summary_out:
+        summary_out_path = resolve_out_path(args.summary_out, args.timestamp_out, run_timestamp)
 
     for case in cases:
         case_id = str(case.get("id", "unknown"))
@@ -319,6 +335,7 @@ def run(args: argparse.Namespace) -> int:
     summary = summarize(results)
     print_summary(summary)
 
+    ensure_parent_dir(out_path)
     with open(out_path, "w", encoding="utf-8") as f:
         for r in results:
             row = {
@@ -347,12 +364,58 @@ def run(args: argparse.Namespace) -> int:
     if args.enforce_thresholds:
         gate_failures.extend(evaluate_thresholds(summary, args))
 
+    run_finished = datetime.now(timezone.utc).isoformat()
+    failed_cases = [
+        {
+            "case_id": r.case_id,
+            "category": r.category,
+            "severity": r.severity,
+            "reasons": r.reasons,
+            "latency_ms": r.latency_ms,
+        }
+        for r in results
+        if not r.passed
+    ]
+    thresholds = {
+        "enforced": bool(args.enforce_thresholds),
+        "allow_case_failures": bool(args.allow_case_failures),
+        "overall_pass_rate_min": float(args.threshold_overall_pass_rate),
+        "high_pass_rate_min": float(args.threshold_high_pass_rate),
+        "critical_max_failures": int(args.threshold_critical_max_failures),
+        "overall_pass_rate_actual": float(summary["pass_rate"]),
+        "high_pass_rate_actual": float(severity_rate(summary, "high")),
+        "critical_failures_actual": int(severity_failed_count(summary, "critical")),
+    }
+
+    exit_code = 1 if gate_failures else 0
+    summary_payload = {
+        "run_started_utc": run_started,
+        "run_finished_utc": run_finished,
+        "model": args.model,
+        "cases_file": args.cases,
+        "results_path": out_path,
+        "summary_total": int(summary["total"]),
+        "summary_passed": int(summary["passed"]),
+        "summary_failed": int(summary["failed"]),
+        "summary_pass_rate": float(summary["pass_rate"]),
+        "by_category": summary["by_category"],
+        "by_severity": summary["by_severity"],
+        "thresholds": thresholds,
+        "gate_passed": not gate_failures,
+        "gate_failures": gate_failures,
+        "failed_cases": failed_cases,
+        "exit_code": exit_code,
+    }
+    if summary_out_path:
+        write_summary_file(summary_out_path, summary_payload)
+        print(f"Wrote summary results: {summary_out_path}")
+
     if gate_failures:
         print("\nGate failures:", file=sys.stderr)
         for msg in gate_failures:
             print(f"- {msg}", file=sys.stderr)
-        return 1
-    return 0
+        return exit_code
+    return exit_code
 
 
 def parse_args() -> argparse.Namespace:
@@ -367,6 +430,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--out", default="results.jsonl", help="Output JSONL path.")
     parser.add_argument("--max-tokens", type=int, default=512, help="Max output tokens.")
     parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature.")
+    parser.add_argument(
+        "--summary-out",
+        default="",
+        help="Optional JSON summary output path (supports {timestamp}).",
+    )
     parser.add_argument(
         "--timestamp-out",
         action="store_true",
