@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "redteam-harness"
+version = "0.1.0"
+description = "Multi-provider LLM red-team safety evaluation harness — test LLMs for refusal, compliance, and safety with threshold-based release gates"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Red-Team Harness Contributors"}
+]
+keywords = ["red-team", "llm", "safety", "evaluation", "security", "ai-safety", "compliance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Security",
+]
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.52.0"]
+openai = ["openai>=1.0"]
+openrouter = ["openai>=1.0"]
+all = [
+    "anthropic>=0.52.0",
+    "openai>=1.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-mock>=3.10",
+]
+
+[project.urls]
+Homepage = "https://github.com/lukebancroft4-max/redteam_harness"
+Repository = "https://github.com/lukebancroft4-max/redteam_harness"
+"Issue Tracker" = "https://github.com/lukebancroft4-max/redteam_harness/issues"
+
+[project.scripts]
+redteam = "redteam_harness.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["redteam_harness*"]
+exclude = ["tests*"]
