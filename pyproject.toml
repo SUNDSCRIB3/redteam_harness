@@ -43,9 +43,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/lukebancroft4-max/redteam_harness"
-Repository = "https://github.com/lukebancroft4-max/redteam_harness"
-"Issue Tracker" = "https://github.com/lukebancroft4-max/redteam_harness/issues"
+Homepage = "https://github.com/SUNDSCRIB3/redteam_harness"
+Repository = "https://github.com/SUNDSCRIB3/redteam_harness"
+"Issue Tracker" = "https://github.com/SUNDSCRIB3/redteam_harness/issues"
 
 [project.scripts]
 redteam = "redteam_harness.cli:main"
